@@ -190,6 +190,59 @@ Imposing `P_pos` removes exactly this upper-position drift counterpart, leaving
 `P_pos ∩ S_shape = M`. (Adding `transition_k` to the shape selector does not
 remove these rows; position does.)
 
+**Structure of the 47 controls.** A follow-up audit looks only at these 47
+controls (`S_shape \ M`) and, for contrast, at the 120 miss events whose
+max-depth avoidance chain reaches depth 3 ("miss-depth-3"). In this finite table
+the 47 are structured, not diffuse. All 47 controls have
+`max_avoidance_depth = 2`; their max-depth avoidance run is `16-31 > 8-15`,
+captured at `4-7`. The miss-depth-3 rows add one earlier band,
+`32-63 > 16-31 > 8-15`, before the same `4-7` capture. So the controls share the
+coarse downstream suffix, but the `32-63` stage has a different chain status and
+boundary-front position from the miss-depth-3 rows.
+
+The `32-63` stage is where the two groups separate, and three descriptors of
+that stage must be kept apart — only two of them separate the groups:
+
+| `32-63` descriptor | controls (47) | miss-depth-3 (120) | separates here? |
+|---|---|---|:---:|
+| local event classification | `avoid_then_caught` | `avoid_then_caught` | no |
+| chain status | `avoid_then_caught` | `avoid` | yes |
+| boundary-front position | lower edge, usually `R=32 -> 29` | higher front, usually `R=35/36/37 -> 31/30` | yes |
+
+Local event classification is identical for both groups, so it does **not**
+account for the split. The split is visible in chain status (the controls'
+`32-63` event is resolved at the boundary, outside the max-depth run; the
+miss-depth-3 event is an `avoid` inside the consecutive max-depth run) and in
+boundary-front position (which edge of `32-63` the trajectory leaves from).
+
+In this finite table a single boundary-front coordinate also separates the two
+groups:
+
+```
+controls:      last_before_exit_distance ∈ {0,1}          (47 / 47)
+miss-depth-3:  last_before_exit_distance ∈ {2,3,4,5,7,8}  (120 / 120)
+```
+
+This coordinate is not independent information. It is a boundary-aligned
+re-expression of the final `32-63` position:
+
+```
+last_before_exit_distance = last_before_R − 32
+```
+
+so it is useful as a display coordinate for the boundary front, but it does not
+add a variable beyond `last_before_R`.
+
+Downstream the two groups do not become identical at once — the first `16-31`
+shapes overlap only partly and their prefix distributions stay visibly
+different — and both are eventually captured at `4-7` (controls: `caught` in
+45/47; miss-depth-3: `avoid_then_caught` in 115/120). The paired
+miss-vs-control figures (`miss_vs_control_exit_distance_transition_k.svg`,
+`miss_vs_control_R_before_after.svg`) illustrate this contrast but are auxiliary;
+the counts above are the record. As before, this is a finite-table description
+of these specific rows: it names no mechanism, cause, proof, counterexample, or
+global Collatz behavior.
+
 **Interpretation (kept separate, and limited).** Read along the two axes of the
 state space:
 
@@ -217,6 +270,8 @@ mechanism, cause, proof, counterexample, or global Collatz behavior.
 | `k_structure_corridor_heatmap.png` | per-distance `k` histogram for `12-30` |
 | *selector diagram (suggested)* | position × shape miss-only cells |
 | *state-space map (in chapter)* | stacked exit-layer / miss-front / corridor |
+| `miss_vs_control_exit_distance_transition_k.svg` | auxiliary — miss vs the 47 controls in exit_distance × transition_k |
+| `miss_vs_control_R_before_after.svg` | auxiliary — miss vs the 47 controls in R before/after |
 
 Chapter document: `state_space_anatomy_of_the_waiting_hall.md`.
 

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>State-Space Anatomy of the Waiting Hall</title>
+<style>
+  :root{
+    --ink:#1b1b1a;
+    --ink-soft:#4a4a47;
+    --ink-faint:#6f6f6a;
+    --paper:#fbfaf7;
+    --line:#d8d6cf;
+    --line-soft:#e7e5de;
+    --obs:#3a5a78;      /* observation accent (muted slate-blue) */
+    --obs-bg:#f1f4f7;
+    --interp:#8a6d2f;   /* interpretation accent (muted ochre)   */
+    --interp-bg:#f6f2e8;
+    --warn:#7a3b3b;
+    --warn-bg:#f5ecea;
+    --code-bg:#f3f1ea;
+    --max:760px;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
+    font-size:17px;
+    line-height:1.62;
+  }
+  .wrap{max-width:var(--max);margin:0 auto;padding:2.4rem 1.25rem 3.5rem;}
+  header.page{border-bottom:1px solid var(--line);padding-bottom:1.4rem;margin-bottom:1.6rem;}
+  h1{font-size:1.85rem;line-height:1.2;margin:0 0 .35rem;font-weight:700;letter-spacing:-0.01em;}
+  .subtitle{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:.95rem;color:var(--ink-faint);font-style:normal;margin:0;}
+  .meta{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:.82rem;color:var(--ink-faint);margin-top:.7rem;}
+    .site-nav{display:flex;flex-wrap:wrap;gap:.45rem .55rem;margin-top:1rem;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:.82rem;line-height:1.4;}
+  .site-nav a{display:inline-flex;align-items:center;min-height:2rem;padding:.22rem .58rem;
+    border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--obs);text-decoration:none;}
+  .site-nav a:hover,.site-nav a:focus{border-color:var(--obs);background:var(--obs-bg);text-decoration:underline;}
+  .section-nav{margin-top:.75rem;}
+  .section-nav .label{display:inline-flex;align-items:center;min-height:2rem;color:var(--ink-faint);font-weight:700;
+    letter-spacing:.04em;margin-right:.15rem;text-transform:uppercase;font-size:.75rem;}
+  .page-footer-nav{margin-top:1rem;}
+
+h2{font-size:1.18rem;margin:2.4rem 0 .2rem;padding-bottom:.3rem;border-bottom:1px solid var(--line-soft);font-weight:700;}
+  h2 .rid{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:.72rem;color:var(--ink-faint);font-weight:600;letter-spacing:.06em;margin-right:.55rem;
+    border:1px solid var(--line);border-radius:3px;padding:.05rem .35rem;vertical-align:.12em;}
+  h3{font-size:1rem;margin:1.5rem 0 .3rem;font-weight:700;}
+  p{margin:.7rem 0;}
+  a{color:var(--obs);}
+  code,.mono{font-family:"SF Mono",ui-monospace,"Cascadia Mono",Menlo,Consolas,monospace;
+    font-size:.86em;background:var(--code-bg);padding:.05em .32em;border-radius:3px;}
+  .eqblock{font-family:"SF Mono",ui-monospace,"Cascadia Mono",Menlo,Consolas,monospace;
+    font-size:.84rem;line-height:1.6;background:var(--code-bg);border:1px solid var(--line-soft);
+    border-radius:5px;padding:.7rem .9rem;margin:.9rem 0;overflow-x:auto;white-space:pre;
+    -webkit-overflow-scrolling:touch;color:var(--ink);}
+  .lede{font-size:1.04rem;color:var(--ink-soft);}
+
+  /* Disclaimer banner */
+  .disclaimer{
+    border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);
+    border-radius:5px;padding:.75rem .95rem;margin:1.3rem 0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:.86rem;line-height:1.5;}
+  .disclaimer strong{font-weight:700;}
+
+  /* Observation / Interpretation callouts */
+  .note{border-left:3px solid var(--line);padding:.55rem .9rem;margin:.9rem 0;border-radius:0 4px 4px 0;}
+  .note .tag{display:inline-block;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:.68rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;margin-bottom:.25rem;}
+  .note p{margin:.3rem 0;}
+  .obs{border-left-color:var(--obs);background:var(--obs-bg);}
+  .obs .tag{color:var(--obs);}
+  .interp{border-left-color:var(--interp);background:var(--interp-bg);}
+  .interp .tag{color:var(--interp);}
+
+  /* Key-finding blocks */
+  .findings{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.7rem;margin:1.1rem 0;}
+  .card{border:1px solid var(--line);border-radius:5px;padding:.75rem .85rem;background:#fff;}
+  .card .stat{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:1.15rem;font-weight:700;color:var(--obs);line-height:1.1;}
+  .card .desc{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:.85rem;color:var(--ink-soft);margin-top:.3rem;line-height:1.45;}
+
+  /* Tables: readable on mobile via horizontal scroll */
+  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:1rem 0;border:1px solid var(--line-soft);border-radius:5px;}
+  table{border-collapse:collapse;width:100%;min-width:480px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:.86rem;}
+  caption{caption-side:top;text-align:left;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:.82rem;color:var(--ink-faint);padding:.55rem .7rem;border-bottom:1px solid var(--line-soft);}
+  th,td{padding:.5rem .7rem;text-align:left;border-bottom:1px solid var(--line-soft);vertical-align:top;}
+  thead th{background:#f4f2ec;font-weight:700;color:var(--ink);border-bottom:1px solid var(--line);}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+  tbody tr:last-child td{border-bottom:none;}
+  .yes{color:#2f6b3f;font-weight:700;}
+  .no{color:var(--warn);font-weight:700;}
+  .scrollhint{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:.74rem;color:var(--ink-faint);margin:-.4rem 0 1rem;}
+
+  /* Figures / diagrams */
+  figure{margin:1.4rem 0;border:1px solid var(--line);border-radius:6px;padding:1rem;background:#fff;}
+  figure svg{display:block;width:100%;height:auto;}
+  figcaption{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:.8rem;color:var(--ink-faint);margin-top:.7rem;line-height:1.5;}
+
+  /* Selector matrix diagram (CSS grid) */
+  .matrix{display:grid;grid-template-columns:auto 1fr 1fr;gap:.4rem;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .matrix .corner{font-size:.72rem;color:var(--ink-faint);display:flex;align-items:flex-end;}
+  .matrix .colh,.matrix .rowh{font-size:.78rem;font-weight:700;color:var(--ink-soft);
+    display:flex;align-items:center;justify-content:center;text-align:center;padding:.3rem;}
+  .matrix .rowh{writing-mode:horizontal-tb;}
+  .cell{border-radius:5px;padding:.6rem .5rem;text-align:center;border:1px solid var(--line);min-height:64px;
+    display:flex;flex-direction:column;justify-content:center;}
+  .cell .v{font-size:.95rem;font-weight:700;}
+  .cell .l{font-size:.72rem;margin-top:.2rem;color:var(--ink-soft);}
+  .cell.pass{background:#eef4ef;border-color:#bcd4c2;}
+  .cell.pass .v{color:#2f6b3f;}
+  .cell.leak{background:var(--warn-bg);border-color:#e0c5c2;}
+  .cell.leak .v{color:var(--warn);}
+
+  ul.tight{margin:.6rem 0;padding-left:1.2rem;}
+  ul.tight li{margin:.32rem 0;}
+
+  footer.page{margin-top:2.6rem;border-top:1px solid var(--line);padding-top:1.2rem;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:.82rem;color:var(--ink-faint);}
+  .cite{background:#fff;border:1px solid var(--line);border-left:3px solid var(--ink-faint);
+    border-radius:0 5px 5px 0;padding:.7rem .9rem;font-size:.86rem;color:var(--ink-soft);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+
+  @media (max-width:700px){
+    .wrap{padding:1.9rem 1rem 2.9rem;}
+    .site-nav{gap:.4rem;font-size:.8rem;}
+    .site-nav a{flex:1 1 auto;justify-content:center;min-width:min(10rem,100%);}
+    .section-nav .label{flex:1 0 100%;min-height:auto;margin:.15rem 0 0;}
+    .findings{grid-template-columns:1fr;}
+    figure{padding:.75rem;margin:1.1rem 0;}
+    .matrix{grid-template-columns:4.4rem 1fr 1fr;gap:.3rem;}
+    .cell{min-height:58px;padding:.5rem .35rem;}
+  }
+
+  @media (max-width:520px){
+    body{font-size:16px;line-height:1.58;}
+    .wrap{padding:1.45rem .85rem 2.4rem;}
+    header.page{padding-bottom:1.1rem;margin-bottom:1.35rem;}
+    h1{font-size:1.42rem;line-height:1.28;}
+    h2{font-size:1.08rem;margin:2rem 0 .25rem;}
+    h2 .rid{display:inline-block;margin-bottom:.2rem;}
+    p{margin:.62rem 0;}
+    code,.mono{overflow-wrap:anywhere;}
+    .disclaimer,.note,.card,.cite{padding:.65rem .72rem;}
+    .tablewrap{margin:.85rem -.15rem;border-radius:4px;}
+    table{min-width:560px;font-size:.8rem;}
+    th,td{padding:.45rem .55rem;}
+    caption{padding:.5rem .55rem;}
+    figcaption{font-size:.78rem;}
+    .matrix{grid-template-columns:3.6rem 1fr 1fr;font-size:.92rem;}
+    .matrix .corner,.matrix .colh,.matrix .rowh{font-size:.68rem;padding:.2rem;}
+    .cell .v{font-size:.82rem;}
+    .cell .l{font-size:.66rem;}
+  }
+
+  @media (max-width:380px){
+    .wrap{padding-left:.72rem;padding-right:.72rem;}
+    .site-nav a{min-width:100%;}
+    .matrix{grid-template-columns:1fr 1fr;}
+    .matrix .corner{grid-column:1 / -1;justify-content:flex-start;}
+    .matrix .colh:first-of-type{grid-column:1;}
+    .matrix .rowh{grid-column:1 / -1;justify-content:flex-start;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="page">
+    <h1>State-Space Anatomy of the Waiting Hall</h1>
+    <p class="subtitle">An independent finite-sample observational chapter</p>
+    <p class="meta">Dataset: 76,530 band-internal event rows &middot; 228 miss events &middot; 76,302 non-miss background rows</p>
+    <nav class="site-nav primary-nav" aria-label="Site links">
+
+<a href="../index.html">Home</a>
+
+<a href="https://unverifiednotes.com/en/collatz_paradoxical-sequence/">Previous: collatz_paradoxical-sequence</a>
+
+<a href="https://unverifiednotes.com/en/collatz-delta/">Δ: Δ-localization </a>
+
+      <a href="https://github.com/Riku-Tono/paradoxical-sequence">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="disclaimer" role="note">
+    <strong>Finite-sample scope.</strong> This chapter gives a finite-sample description of the waiting hall as a small state space organized by <code>exit_distance</code>. The findings are descriptive and coordinate-based; the coordinates describe where events occur, not causes.
+  </div>
+
+  <!-- 2. ABSTRACT -->
+  <section aria-labelledby="summary">
+    <h2 id="summary">Summary</h2>
+    <p class="lede">
+      This chapter gives a finite-sample description of the waiting hall as a small state space organized by <code>exit_distance</code>.<br><br>
+The principal observation is that the waiting hall is internally structured rather than uniform. Along <code>exit_distance</code>, three regions emerge: an exit layer (<code>0&ndash;2</code>) with no observed miss events, a miss-front (<code>3&ndash;8</code>) containing all 228 observed miss events, and a k-structure corridor (<code>12&ndash;30</code>) where the valuation distribution changes but no miss events occur. A selector audit further shows that miss events are not isolated by any single coordinate; in this sample, miss-only cells first appear when a positional coordinate is paired with a local-shape coordinate.<br><br>These findings are descriptive and coordinate-based. Their scope is limited to the finite sample analyzed here.
+    </p>
+  </section>
+
+<!-- 3. KEY FINDINGS -->
+<section aria-labelledby="keyfindings">
+<h2 id="keyfindings">Key findings</h2>
+<div class="findings">
+<div class="card"><div class="stat">3&ndash;8</div><div class="desc">All 228 miss events occur at <code>exit_distance 3&ndash;8</code> (the miss-front), concentrated around 3&ndash;4.</div></div>
+      <div class="card"><div class="stat">0 at 0&ndash;2</div><div class="desc">No miss events occur at <code>exit_distance 0&ndash;2</code> (the exit layer).</div></div>
+
+<div class="card"><div class="stat">12&ndash;30 &rarr; 0 miss</div><div class="desc">The <code>12&ndash;30</code> corridor holds 34,565 events and 0 misses; a k-structure region, not a miss region.</div></div>
+      <div class="card"><div class="stat">Singles leak</div><div class="desc">Every single coordinate that contains all 228 misses also admits many non-miss background events.</div></div>
+      <div class="card"><div class="stat">Pairs at 2</div><div class="desc">Miss-only cells first appear at two-coordinate pairs: 4 of 6 pairs give 228 miss / 0 non-miss.</div></div>
+      <div class="card"><div class="stat">Position + shape</div><div class="desc">Every miss-only pair combines one positional coordinate with one local-shape coordinate.</div></div>
+    </div>
+  </section>
+
+  <!-- 5. COORDINATE DEFINITIONS (placed before sections, per source order) -->
+  <section aria-labelledby="coords">
+    <h2 id="coords">Coordinate definitions</h2>
+    <div class="tablewrap">
+      <table>
+        <caption>Coordinates used in this chapter. The central coordinate is <code>exit_distance</code>.</caption>
+        <thead><tr><th scope="col">Coordinate</th><th scope="col">Kind</th><th scope="col">Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>exit_distance</code></td><td>positional</td><td>Distance from the lower-edge exit layer of the band; <code>0</code> is the exit, larger is deeper inside. Computed as <code>remaining_K_before &minus; band_lower_edge</code>.</td></tr>
+          <tr><td><code>remaining_K_before</code></td><td>positional</td><td>Remaining valuation mass before the step.</td></tr>
+          <tr><td><code>transition_k</code></td><td>local-shape</td><td>The valuation <code>k</code> of the step.</td></tr>
+          <tr><td><code>residue_pair</code> (e.g. <code>mod32</code>)</td><td>local-shape</td><td>The residue-pair coordinate of the event.</td></tr>
+          <tr><td>miss local type</td><td>label</td><td>Existing <code>A / B / C1 / C2 / C3 / C_unassigned</code> labels, reused as-is.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>"Near behavior" labels (<code>drift</code>, <code>wait</code>, <code>miss</code>, <code>exit</code>) are observational labels derived from position plus existing behavior/miss joins, not new types. No new miss type is introduced.</p>
+  </section>
+
+  <!-- DIAGRAM 1: STATE-SPACE STACK -->
+  <figure aria-labelledby="fig-stack-cap">
+    <svg viewBox="0 0 560 360" role="img" aria-label="State-space stack: k-structure corridor at exit_distance 12 to 30 on top, miss-front at 3 to 8 in the middle, exit layer at 0 to 2 at the bottom, with a downward arrow toward first exit.">
+      <!-- corridor -->
+      <rect x="40" y="20" width="430" height="92" rx="6" fill="#f1f4f7" stroke="#3a5a78" stroke-width="1.4"/>
+      <text x="58" y="46" font-family="sans-serif" font-size="15" font-weight="700" fill="#1b1b1a">k-structure corridor</text>
+      <text x="58" y="68" font-family="sans-serif" font-size="12.5" fill="#4a4a47">exit_distance 12&ndash;30 &middot; 34,565 events &middot; 0 miss</text>
+      <text x="58" y="88" font-family="sans-serif" font-size="12.5" fill="#4a4a47">k3 spike at 15; k1/k2 flips at 22&rarr;23, 26&rarr;27</text>
+      <text x="58" y="106" font-family="sans-serif" font-size="11.5" fill="#6f6f6a">alternating local regimes</text>
+      <!-- miss-front -->
+      <rect x="40" y="138" width="430" height="84" rx="6" fill="#f6f2e8" stroke="#8a6d2f" stroke-width="1.4"/>
+      <text x="58" y="164" font-family="sans-serif" font-size="15" font-weight="700" fill="#1b1b1a">miss-front</text>
+      <text x="58" y="186" font-family="sans-serif" font-size="12.5" fill="#4a4a47">exit_distance 3&ndash;8 &middot; 14,743 events &middot; 228 miss</text>
+      <text x="58" y="206" font-family="sans-serif" font-size="12.5" fill="#4a4a47">concentrated at 3&ndash;4 &middot; located by position &times; shape</text>
+      <!-- exit layer -->
+      <rect x="40" y="248" width="430" height="70" rx="6" fill="#f3f1ea" stroke="#6f6f6a" stroke-width="1.4"/>
+      <text x="58" y="274" font-family="sans-serif" font-size="15" font-weight="700" fill="#1b1b1a">exit layer</text>
+      <text x="58" y="296" font-family="sans-serif" font-size="12.5" fill="#4a4a47">exit_distance 0&ndash;2 &middot; no miss events &middot; movement mostly flat</text>
+      <!-- downward arrow -->
+      <line x1="505" y1="28" x2="505" y2="318" stroke="#6f6f6a" stroke-width="1.6"/>
+      <polygon points="505,330 499,314 511,314" fill="#6f6f6a"/>
+      <text x="520" y="178" font-family="sans-serif" font-size="11" fill="#6f6f6a" transform="rotate(90 520 178)">toward first exit</text>
+    </svg>
+    <figcaption id="fig-stack-cap"><strong>Diagram 1 &mdash; Waiting-hall state space.</strong> Regions stacked by <code>exit_distance</code>, descending toward the first exit. A conceptual map, not a boundary map.</figcaption>
+  </figure>
+
+  <!-- R1 -->
+  <section aria-labelledby="r1">
+    <h2 id="r1"><span class="rid">R1</span>The interior is not uniform</h2>
+    <p>An initial partition divided the hall by within-band position into four coarse regions: <code>upper_hall</code>, <code>mid_hall</code>, <code>lower_hall</code>, and the <code>exit_layer</code> (distance 0&ndash;2). This was an initial, ratio-based partition only.</p>
+    <div class="tablewrap">
+      <table>
+        <caption>Coarse four-box hall. Wait shortens toward the exit; all 228 miss events fall in <code>lower_hall</code> in this partition.</caption>
+        <thead><tr><th scope="col">Zone</th><th scope="col" class="num">Events</th><th scope="col" class="num">Mean wait</th><th scope="col" class="num">Median</th><th scope="col">k up / down / flat</th><th scope="col" class="num">Miss</th></tr></thead>
+        <tbody>
+          <tr><td>upper_hall</td><td class="num">16,322</td><td class="num">23.467</td><td class="num">22.0</td><td>4,702 / 4,367 / 4,859</td><td class="num">0</td></tr>
+          <tr><td>mid_hall</td><td class="num">22,555</td><td class="num">22.183</td><td class="num">22.0</td><td>6,732 / 6,346 / 8,450</td><td class="num">0</td></tr>
+          <tr><td>lower_hall</td><td class="num">27,456</td><td class="num">18.876</td><td class="num">19.0</td><td>8,957 / 9,023 / 8,531</td><td class="num">228</td></tr>
+          <tr><td>exit_layer</td><td class="num">10,197</td><td class="num">17.489</td><td class="num">20.0</td><td>2,346 / 1,372 / 6,363</td><td class="num">0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Coarse miss-type mix in <code>lower_hall</code>: <code>B:85, A:64, C_unassigned:50, C1:13, C2:10, C3:6</code>.</p>
+<div class="note obs"><span class="tag">Observation</span>
+<p>The four regions are not interchangeable: event counts, wait times, the <code>k</code> up/down/flat balance, and miss location all differ. The exit layer is overwhelmingly <code>flat</code> (6,363 of 10,197).</p>
+    </div>
+
+<div class="note interp"><span class="tag">Interpretation</span>
+<p>The four boxes are a coarse partition; the fact that every miss lands in one box is suggestive, not conclusive. R2 replaces the boxes with a continuous coordinate to test the shape of the region.</p></div>
+</section>
+
+  <!-- R2 -->
+  <section aria-labelledby="r2">
+<h2 id="r2"><span class="rid">R2</span>From boxes to a continuous exit distance</h2>
+<p>Replacing the boxes with the continuous coordinate <code>exit_distance</code>, three regions emerge without being predefined: an exit layer (0&ndash;2), a miss-front (3&ndash;8), and a k-structure region (12&ndash;30).</p>
+    <div class="tablewrap">
+      <table>
+        <caption>Miss-front vs k-structure corridor, aggregated in the same format.</caption>
+<thead><tr><th scope="col">Zone</th><th scope="col">Distance</th><th scope="col" class="num">Events</th><th scope="col" class="num">Miss</th><th scope="col" class="num">Miss rate</th><th scope="col" class="num">Dominant k</th></tr></thead>
+
+<tbody>
+<tr><td>miss_front_3_8</td><td>3&ndash;8</td><td class="num">14,743</td><td class="num">228</td><td class="num">0.015465</td><td class="num">1</td></tr>
+          <tr><td>k_structure_corridor_12_30</td><td>12&ndash;30</td><td class="num">34,565</td><td class="num">0</td><td class="num">0.000000</td><td class="num">1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note obs"><span class="tag">Observation</span>
+<p>The two regions share dominant <code>k=1</code> and are close in overall <code>k</code> distribution (zone-level L1 difference <code>0.16214</code>), but differ decisively in miss profile: 228 misses vs 0.</p>
+    </div>
+    <div class="note interp"><span class="tag">Interpretation</span>
+      <p>Because the 12&ndash;30 region has zero miss events in this sample, it is best described as a k-structure region, not a miss region &mdash; even though it is adjacent in <code>exit_distance</code>. Some individual distances look <code>k</code>-similar across the two regions, but zone-level miss and behaviour profiles separate them.</p>
+    </div>
+  </section>
+
+  <!-- R3 -->
+  <section aria-labelledby="r3">
+    <h2 id="r3"><span class="rid">R3</span>Internal k structure: the 12&ndash;30 corridor</h2>
+    <p>Four landmark distances were checked for support and shape.</p>
+    <div class="tablewrap">
+      <table>
+        <caption>Corridor landmarks. All four are supported (each ~2,000+ events) but are not the same kind of landmark.</caption>
+        <thead><tr><th scope="col" class="num">Distance</th><th scope="col" class="num">Events</th><th scope="col">Dominant k</th><th scope="col" class="num">Top-2 share</th><th scope="col" class="num">k3 share</th><th scope="col" class="num">Entropy</th><th scope="col">Reading</th></tr></thead>
+        <tbody>
+          <tr><td class="num">15</td><td class="num">2,456</td><td>3</td><td class="num">0.8388</td><td class="num">0.5908</td><td class="num">1.6309</td><td>k3 spike</td></tr>
+          <tr><td class="num">18</td><td class="num">2,222</td><td>1</td><td class="num">0.9154</td><td class="num">0.0351</td><td class="num">1.0182</td><td>k1-heavy reset, not a k3 point</td></tr>
+          <tr><td class="num">23</td><td class="num">2,228</td><td>1</td><td class="num">0.8999</td><td class="num">0.0471</td><td class="num">1.2150</td><td>k1-heavy side of a flip</td></tr>
+          <tr><td class="num">27</td><td class="num">2,035</td><td>1</td><td class="num">0.9253</td><td class="num">0.0403</td><td class="num">1.0209</td><td>k1-heavy side of an outer flip</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <caption>Supported zone candidates within 12&ndash;30 (dominant/second per distance).</caption>
+        <thead><tr><th scope="col">Zone candidate</th><th scope="col">Distance</th><th scope="col" class="num">Events</th><th scope="col">Signature</th></tr></thead>
+
+<tbody>
+          <tr><td>approach_to_k3_spike</td><td>12&ndash;14</td><td class="num">5,136</td><td>12:1/2 &rarr; 13:1/2 &rarr; 14:2/1</td></tr>
+          <tr><td>k3_spike</td><td>15</td><td class="num">2,456</td><td>15:3/1</td></tr>
+          <tr><td>k2_to_k1_reset</td><td>16&ndash;18</td><td class="num">5,950</td><td>16:1/2 &rarr; 17:2/1 &rarr; 18:1/2</td></tr>
+          <tr><td>k1_plateau_with_k4_tail</td><td>19&ndash;21</td><td class="num">5,699</td><td>19:1/2 &rarr; 20:1/2 &rarr; 21:1/2</td></tr>
+          <tr><td>k2_k1_flip</td><td>22&ndash;23</td><td class="num">4,456</td><td>22:2/1 &rarr; 23:1/2</td></tr>
+          <tr><td>outer_k1_k2_flip</td><td>24&ndash;27</td><td class="num">7,398</td><td>24:1/2 &rarr; 25:1/2 &rarr; 26:2/1 &rarr; 27:1/2</td></tr>
+          <tr><td>outer_mixed_tail</td><td>28&ndash;30</td><td class="num">3,470</td><td>28:1/2 &rarr; 29:2/1 &rarr; 30:1/2</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note obs"><span class="tag">Observation</span>
+<p>The corridor is not a smooth gradient. Distance 15 is the single clearest local spike (<code>k=3</code> dominant, share 0.5908). Distances 22&rarr;23 and 26&rarr;27 both flip from a k2-heavy point to a k1-heavy point; distance 18 is a reset-like k1-heavy point after the 16&ndash;17 transition, not a spike.</p>
+    </div>
+<div class="note interp"><span class="tag">Interpretation</span>
+<p>The zone split is supported by the audited counts and should not be interpreted as a mechanism. The corridor is best described as a short series of alternating local <code>k</code>-regimes with no miss events in this sample.</p>
+</div>
+  </section>
+
+  <!-- R4 -->
+<section aria-labelledby="r4">
+<h2 id="r4"><span class="rid">R4</span>The miss-front (3&ndash;8)</h2>
+    <div class="note obs"><span class="tag">Observation &mdash; where the misses sit</span>
+<ul class="tight">
+
+<li>Miss events occur at <code>exit_distance 3&ndash;8</code>, never in the exit layer (0&ndash;2).</li>
+<li>Concentrated near the front: integer residue-pair cells peak at distance 3, then 4 (<code>3&rarr;15:64, 4&rarr;15:47, 3&rarr;14:38, 4&rarr;14:18, &hellip;</code>), thinning toward 5&ndash;8.</li>
+
+<li>The <code>k</code> mix is dominated by small <code>k</code> (<code>k1:9,142; k2:3,358; k3:1,433; &hellip;</code>).</li>
+
+<li>Band-jump context is mostly same-band (<code>32-63&rarr;32-63:9,704; 64-127&rarr;64-127:4,143; 128-255&rarr;128-255:668</code>).</li>
+      </ul>
+    </div>
+    <div class="note obs"><span class="tag">Observation &mdash; local type structure</span>
+      <p>Within the miss-front the labels appear as <code>B:85, A:64, C_unassigned:50, C1:13, C2:10, C3:6</code>. In expanded parity, the named/short types sit on short words (<code>OEEEEEO:85</code> for the B-like group, <code>OEEEEO:64</code> for the A-like group), while the remaining mass reaches longer words (<code>OEEEEEEO:44, OEEEEEEEO:19, OEEEEEEEEO:8, &hellip; OEEEEEEEEEEEO:1</code>).</p>
+    </div>
+    <div class="note interp"><span class="tag">Interpretation</span>
+      <p>In this finite sample, <code>A</code> and <code>B</code> behave as compact, short-window types, while <code>C_unassigned</code> appears as a more diffuse residual that spreads further across the longer-window coordinates rather than collapsing onto a single cell. This is an observation about where the labels concentrate, not a claim that any of them is necessary, sufficient, or mechanistic.</p>
+    </div>
+  </section>
+
+  <!-- DIAGRAM 2: SELECTOR MATRIX -->
+  <figure aria-labelledby="fig-sel-cap">
+    <div class="matrix" role="img" aria-label="Selector matrix. Pairing a positional coordinate with a positional coordinate leaks 13,574 non-miss events. Positional with local-shape is miss-only with zero leak. Local-shape with local-shape leaks 47 non-miss events.">
+      <div class="corner">second&nbsp;&rarr;<br>first&nbsp;&darr;</div>
+      <div class="colh">Positional</div>
+      <div class="colh">Local-shape</div>
+
+      <div class="rowh">Positional</div>
+      <div class="cell leak"><span class="v">leaks</span><span class="l">+13,574 non-miss</span></div>
+      <div class="cell pass"><span class="v">miss-only</span><span class="l">0 leak</span></div>
+
+      <div class="rowh">Local-shape</div>
+      <div class="cell pass"><span class="v">miss-only</span><span class="l">0 leak</span></div>
+      <div class="cell leak"><span class="v">leaks</span><span class="l">+47 non-miss</span></div>
+    </div>
+    <figcaption id="fig-sel-cap"><strong>Diagram 2 &mdash; Position &times; shape selectors.</strong> Off-diagonal pairs (one positional + one local-shape) are miss-only with 0 non-miss leakage. On-diagonal pairs &mdash; position+position and shape+shape &mdash; still leak. These are finite-sample selector cells.</figcaption>
+  </figure>
+
+  <!-- R5 -->
+  <section aria-labelledby="r5">
+    <h2 id="r5"><span class="rid">R5</span>Position versus shape</h2>
+    <p>A selector audit over the full event table (76,530 rows; 228 miss; 76,302 non-miss background) used four candidate coordinates &mdash; two positional and two local-shape. A cell is "miss-only" when it contains all 228 miss events and 0 non-miss events.</p>
+    <div class="tablewrap">
+      <table>
+        <caption>Single coordinates &mdash; all leak. The lowest-leakage single coordinate is <code>residue_pair_mod32</code> (47 non-miss), still not miss-only.</caption>
+        <thead><tr><th scope="col">Coordinate</th><th scope="col" class="num">Matched</th><th scope="col" class="num">Miss</th><th scope="col" class="num">Non-miss</th><th scope="col" class="num">Miss rate</th><th scope="col">Miss-only?</th></tr></thead>
+        <tbody>
+          <tr><td>exit_distance</td><td class="num">14,743</td><td class="num">228</td><td class="num">14,515</td><td class="num">0.015465</td><td class="no">no</td></tr>
+          <tr><td>remaining_K_before</td><td class="num">13,802</td><td class="num">228</td><td class="num">13,574</td><td class="num">0.016519</td><td class="no">no</td></tr>
+          <tr><td>residue_pair_mod32</td><td class="num">275</td><td class="num">228</td><td class="num">47</td><td class="num">0.829091</td><td class="no">no</td></tr>
+          <tr><td>transition_k</td><td class="num">4,946</td><td class="num">228</td><td class="num">4,718</td><td class="num">0.046098</td><td class="no">no</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <caption>Two-coordinate pairs &mdash; miss-only cells first appear here. 4 of 6 pairs give 228 miss / 0 non-miss; both that fail stay on one side.</caption>
+        <thead><tr><th scope="col">Pair</th><th scope="col" class="num">Matched</th><th scope="col" class="num">Miss</th><th scope="col" class="num">Non-miss</th><th scope="col">Miss-only?</th><th scope="col">Pairing</th></tr></thead>
+        <tbody>
+          <tr><td>exit_distance + residue_pair_mod32</td><td class="num">228</td><td class="num">228</td><td class="num">0</td><td class="yes">yes</td><td>position + shape</td></tr>
+          <tr><td>exit_distance + transition_k</td><td class="num">228</td><td class="num">228</td><td class="num">0</td><td class="yes">yes</td><td>position + shape</td></tr>
+          <tr><td>remaining_K_before + residue_pair_mod32</td><td class="num">228</td><td class="num">228</td><td class="num">0</td><td class="yes">yes</td><td>position + shape</td></tr>
+          <tr><td>remaining_K_before + transition_k</td><td class="num">228</td><td class="num">228</td><td class="num">0</td><td class="yes">yes</td><td>position + shape</td></tr>
+          <tr><td>residue_pair_mod32 + transition_k</td><td class="num">275</td><td class="num">228</td><td class="num">47</td><td class="no">no</td><td>shape + shape</td></tr>
+          <tr><td>exit_distance + remaining_K_before</td><td class="num">13,802</td><td class="num">228</td><td class="num">13,574</td><td class="no">no</td><td>position + position</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note obs"><span class="tag">Observation</span>
+      <p>Every miss-only pair combines one positional coordinate with one local-shape coordinate. The two pairs that fail are exactly the two that stay on one side: position+position leaks 13,574 non-miss; shape+shape leaks 47. Three- and four-coordinate selectors remain miss-only but add nothing once a position&ndash;shape pair already separates the misses; the four-coordinate tuple is redundant in this scan.</p>
+    </div>
+    <div class="note interp"><span class="tag">Interpretation</span>
+      <p>In this dataset, "miss-only" means that the cell contains misses and no non-miss background. The key structural pattern is that a miss is pinned down not by position alone nor shape alone, but by a position coordinate and a shape coordinate together.</p>
+    </div>
+  </section>
+
+  <!-- R5b: SELECTOR IDENTITY -->
+  <section aria-labelledby="identity">
+    <h2 id="identity"><span class="rid">R5&middot;</span>Finite-sample selector identity</h2>
+    <p>The selector audit above can be written compactly as a single statement about two selectors over the audited event set. This is a compact way to state the observation within the audited sample.</p>
+
+    <h3>Definitions</h3>
+    <p>Let <code>&Omega;_N</code> be the audited set of band-internal event rows, and let <code>M &sube; &Omega;_N</code> be the observed miss-event set:</p>
+    <div class="eqblock" role="img" aria-label="Omega N is the audited band-internal event rows, with size 76,530. M is the observed miss-event set, a subset of Omega N, with size 228.">&Omega;_N = audited band-internal event rows,        |&Omega;_N| = 76,530
+M   = observed miss-event set,    M &sube; &Omega;_N,     |M|   = 228</div>
+    <p>Define the <strong>miss-front position selector</strong> and the <strong>miss-supported local-shape selector</strong> (the latter built from the residue-pair values that the miss events themselves occupy):</p>
+    <div class="eqblock" role="img" aria-label="P_pos is the set of x in Omega N with exit_distance in 3 to 8. R_M is the set of residue_pair_mod32 values over x in M. S_shape is the set of x in Omega N whose residue_pair_mod32 is in R_M.">P_pos   = { x &isin; &Omega;_N : exit_distance(x) &isin; {3,4,5,6,7,8} }
+
+R_M     = { residue_pair_mod32(x) : x &isin; M }
+S_shape = { x &isin; &Omega;_N : residue_pair_mod32(x) &isin; R_M }</div>
+    <p><code>S_shape</code> is defined on <code>residue_pair_mod32</code> alone. <code>transition_k</code> is <strong>not</strong> added to the main definition: adding it does not remove the non-miss rows that <code>S_shape</code> admits (the leakage stays at 47), so the shape side carries no extra separating information here &mdash; the separation is supplied by the position side.</p>
+    <p>Here <code>S_shape</code> is a miss-supported selector: it is defined from the residue-pair values observed in <code>M</code>, then applied back to <code>&Omega;_N</code>. Thus the identity is a finite-sample support check, not an independent prediction rule.</p>
+
+    <div class="note obs"><span class="tag">Observation</span>
+      <p>In this finite sample each selector contains all of <code>M</code>, but neither alone isolates it:</p>
+      <div class="eqblock" role="img" aria-label="M is a subset of P_pos, and P_pos minus M has 14,515 rows. M is a subset of S_shape, and S_shape minus M has 47 rows.">M &sube; P_pos,       |P_pos \ M|   = 14,515
+M &sube; S_shape,     |S_shape \ M| = 47</div>
+      <p>Their conjunction removes the excess rows exactly:</p>
+      <div class="eqblock" role="img" aria-label="P_pos intersect S_shape equals M, inside Omega N.">P_pos &cap; S_shape = M        (inside &Omega;_N)</div>
+      <p>We call this last line a <strong>finite-sample selector identity</strong>: an empirical equality that holds inside <code>&Omega;_N</code>. Within the audited rows, the conjunction of these two selectors picks out exactly the observed miss-event set.</p>
+      <p>This identity is descriptive and limited to the audited sample.</p>
+    </div>
+
+    <div class="note obs"><span class="tag">Observation &mdash; the 47 excess rows</span>
+      <p>The rows in <code>S_shape \ M</code> are not diffuse noise. In this sample all 47 lie <strong>outside</strong> the miss-front, at <code>exit_distance 35, 36, 37</code>, and all carry <code>near_behavior = drift</code>:</p>
+      <div class="eqblock" role="img" aria-label="S_shape minus M is a subset of the rows with exit_distance in 35, 36, 37. The near_behavior of every such row is drift.">S_shape \ M  &sube; { x : exit_distance(x) &isin; {35,36,37} }
+near_behavior(x) = drift   for all x &isin; S_shape \ M</div>
+      <p>So the same residue-pair shape that appears in the miss-front also appears at these upper positions, but there it is realized as <code>drift</code> rather than <code>miss</code>. Imposing <code>P_pos</code> removes exactly this upper-position drift counterpart, leaving <code>P_pos &cap; S_shape = M</code>. (Adding <code>transition_k</code> to the shape selector does not remove these rows; position does.)</p>
+    </div>
+
+    <div class="note interp"><span class="tag">Interpretation (kept separate, and limited)</span>
+      <p>Viewed along the two axes of the state space:</p>
+      <ul class="tight">
+        <li><em>shape alone is miss-compatible but not miss-isolating</em> &mdash; the miss-supported residue shape also occurs away from the miss-front;</li>
+        <li><em>position alone is broad</em> &mdash; the <code>3&ndash;8</code> window contains 14,515 non-miss rows;</li>
+        <li><em>position + shape isolates the observed miss events inside <code>&Omega;_N</code></em> &mdash; their conjunction is exactly <code>M</code>.</li>
+      </ul>
+      <p>This is the same "where &times; how" interpretation as the rest of the chapter, written as an equality that holds in this finite sample. It does not imply a mechanism, proof, counterexample, or global Collatz behavior.</p>
+    </div>
+  </section>
+
+  <!-- R6 -->
+  <section aria-labelledby="r6">
+    <h2 id="r6"><span class="rid">R6</span>State-space interpretation</h2>
+    <div class="note obs"><span class="tag">Observation summary</span>
+      <ul class="tight">
+        <li>The interior is not uniform (R1): wait time, <code>k</code> balance, and miss location vary by position.</li>
+        <li>A continuous exit-distance reading makes three regions appear naturally (R2): exit layer 0&ndash;2, miss-front 3&ndash;8, corridor 12&ndash;30.</li>
+        <li>The corridor is alternating local regimes, not a smooth gradient (R3).</li>
+        <li>The miss-front contains all miss events, concentrated around 3&ndash;4, with none at the exit layer; <code>C_unassigned</code> is the most diffuse label (R4).</li>
+        <li>Miss events are located by a position + shape pair, not by either kind of coordinate alone (R5).</li>
+        <li>Within this finite sample the conjunction of a position selector and a miss-supported shape selector picks out exactly the observed miss-event set: <code>P_pos &cap; S_shape = M</code> inside <code>&Omega;_N</code> (selector identity).</li>
+      </ul>
+    </div>
+    <div class="note interp"><span class="tag">Interpretation</span>
+      <p>As a state space, the hall has a "where" axis (exit distance / position) and a "how" axis (local shape: <code>k</code>, residue, parity). The miss-front is where those two axes jointly select miss events; the corridor is where the "how" axis varies but no miss events are selected; the exit layer is the lower reference region.</p>
+    </div>
+  </section>
+
+  <!-- 8. SCOPE -->
+  <section aria-labelledby="noclaim">
+    <h2 id="noclaim">Scope</h2>
+    <p>The claims in this chapter are limited to the finite sample studied here. The regions are descriptive groupings, not proven thresholds. The coordinates used here, including <code>exit_distance</code>, residues, and <code>transition_k</code>, are used to describe where events occur; they are not claimed to be causes.</p>
+    <p>Accordingly, the conclusions of this chapter are limited to the finite sample analyzed here and should not be interpreted as claims about the Collatz problem as a whole. "Miss-only selector" means only that, in this sample, the selected cell contains miss events and no non-miss background.</p>
+    <p>No new miss type is introduced; the existing <code>A / B / C1 / C2 / C3 / C_unassigned</code> labels are reused as-is.</p>
+  </section>
+
+  <!-- 9. FIGURES / ARTIFACTS -->
+  <section aria-labelledby="figs">
+    <h2 id="figs">Figures / artifacts</h2>
+    <div class="tablewrap">
+      <table>
+        <caption>Source figures and their role in this chapter. Links are provisional and can be adjusted to the final file layout.</caption>
+        <thead><tr><th scope="col">Figure / artifact</th><th scope="col">Role</th></tr></thead>
+        <tbody>
+          <tr><td><a href="./figures/waiting_hall_interior_map.png" target="_blank" rel="noopener noreferrer"><code>waiting_hall_interior_map.png</code></a></td><td>R1 &mdash; coarse four-box hall</td></tr>
+          <tr><td><a href="./figures/band_position_flow_map.png" target="_blank" rel="noopener noreferrer"><code>band_position_flow_map.png</code></a></td><td>R1 &mdash; downward flow between hall zones and exits</td></tr>
+          <tr><td><a href="./figures/k_by_hall_zone_heatmap.png" target="_blank" rel="noopener noreferrer"><code>k_by_hall_zone_heatmap.png</code></a></td><td>R1 / R2 &mdash; <code>k</code> distribution by coarse zone</td></tr>
+          <tr><td><a href="./figures/exit_distance_miss_rate_plot.svg" target="_blank" rel="noopener noreferrer"><code>exit_distance_miss_rate_plot.svg</code></a></td><td>R2 / R4 &mdash; miss rate vs continuous exit distance</td></tr>
+          <tr><td><a href="./figures/k_change_by_exit_distance.png" target="_blank" rel="noopener noreferrer"><code>k_change_by_exit_distance.png</code></a></td><td>R2 / R3 &mdash; k-change score per distance (landmarks 15 / 18 / 23 / 27)</td></tr>
+          <tr><td><a href="./figures/k_structure_corridor_heatmap.png" target="_blank" rel="noopener noreferrer"><code>k_structure_corridor_heatmap.png</code></a></td><td>R3 &mdash; per-distance <code>k</code> histogram for 12&ndash;30</td></tr>
+          <tr><td>selector diagram (Diagram 2 above)</td><td>R5 &mdash; position &times; shape miss-only cells</td></tr>
+          <tr><td>state-space map (Diagram 1 above)</td><td>R6 &mdash; stacked exit-layer / miss-front / corridor</td></tr>
+          <tr><td><a href="./img/glossary_ of_ Terms.png" target="_blank" rel="noopener noreferrer"><code>glossary_ of_ Terms.png</code></a></td><td>Glossary &mdash; Collatz terminology</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 10. SOURCE REPORTS -->
+  <section aria-labelledby="sources">
+    <h2 id="sources">Source reports used</h2>
+    <p>Five finite-sample reports, reorganized into a single narrative (R1 &rarr; R6) rather than listed report by report:</p>
+    <div class="tablewrap">
+      <table>
+        <caption>Source reports mapped to sections. Links are provisional and can be adjusted to the final file layout.</caption>
+        <thead><tr><th scope="col">Report</th><th scope="col">Section</th><th scope="col">python</th></tr></thead>
+        <tbody>
+          <tr><td><a href="./reports/waiting_hall_interior_report.md" download><code>waiting_hall_interior_report.md</code></a></td><td>R1 &mdash; coarse four-box hall</td><td><a href="./python/waiting_hall_interior_audit.py" download><code>waiting_hall_interior_audit.py</code></a></td></tr>
+          <tr><td><a href="./reports/hall_zone_comparison_report.md" download><code>hall_zone_comparison_report.md</code></a></td><td>R2 &mdash; miss-front vs corridor</td><td><a href="./python/hall_zone_comparison_audit.py" download><code>hall_zone_comparison_audit.py</code></a></td></tr>
+          <tr><td><a href="./reports/zone_coordinate_contrast_report.md" download><code>zone_coordinate_contrast_report.md</code></a></td><td>R2 / R4 &mdash; k-similar pairs, residue/parity</td><td><a href="./python/zone_coordinate_contrast_audit.py" download><code>zone_coordinate_contrast_audit.py</code></a></td></tr>
+          <tr><td><a href="./reports/k_structure_corridor_report.md" download><code>k_structure_corridor_report.md</code></a></td><td>R3 &mdash; the 12&ndash;30 corridor</td><td><a href="./python/k_structure_corridor_audit.py" download><code>k_structure_corridor_audit.py</code></a></td></tr>
+          <tr><td><a href="./reports/minimal_miss_selector_report.md" download><code>minimal_miss_selector_report.md</code></a></td><td>R5 &mdash; minimal miss-only selectors</td><td><a href="./python/minimal_miss_selector_audit.py" download><code>minimal_miss_selector_audit.py</code></a></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>This chapter is independent of, and does not modify, the Paradoxical-Sequence chapter (first-pass faces at the <code>64-95 &rarr; 32-63</code> boundary). It studies the space before that boundary.</p>
+  </section>
+
+  <footer class="page">
+    <p class="cite">
+      <em>State-Space Anatomy of the Waiting Hall</em> &mdash; a finite-sample observational chapter on the interior geometry of the waiting hall before first exit (76,530 band-internal event rows; 228 miss events; 76,302 non-miss background rows). Findings are descriptive and coordinate-based.
+    </p>
+    <nav class="site-nav page-footer-nav" aria-label="Footer links">
+      <a href="../index.html">Home</a>
+      <a href="#summary">Summary</a>
+      <a href="#keyfindings">Key findings</a>
+      <a href="#coords">Coordinates</a>
+      <a href="#noclaim">Scope</a>
+      <a href="#figs">Figures</a>
+      <a href="#sources">Sources</a>
+
+<a href="https://unverifiednotes.com/en/collatz_paradoxical-sequence/">Previous: collatz_paradoxical-sequence</a>
+
+<a href="https://unverifiednotes.com/en/collatz-delta/">Δ: Δ-localization </a>
+
+
+ <a href="https://github.com/Riku-Tono/paradoxical-sequence">GitHub</a>
+    </nav>
+  </footer>
+
+</div>
+</body>
+</html>
